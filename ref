@@ -24,7 +24,6 @@ runID = 7
 itermax = 1 # # of interations of water routing
 Np_water = 1000 # number of water parcels; typically 2000
 Np_sed = 500 # number of sediment parcels
-#inputs = [f_bedload,totaltimestep,W]
 
 #operations used in the model        
 class model_steps(object):
@@ -495,20 +494,20 @@ class model_steps(object):
             self.erode(Vp_ero,px,py)
         self.Vp_dep_mud[px,py] = self.Vp_dep_mud[px,py]+Vp_dep
             
-    def sed_parcel(self,theta_sed,sed): #route one sediment parcel
+    def sed_parcel(self,theta_sed,sed,px,py): #route one sediment parcel
         it = 0
-        self.iseq[it] = self.px
-        self.jseq[it] = self.py
+        self.iseq[it] = px
+        self.jseq[it] = py
         sed_continue = 1
         while sed_continue == 1 and it < self.itmax:
             #choose next with weights
             weight = np.zeros((8,1))
-            it = it+1
-            nk = self.Nnbr[self.px,self.py]
-            dxn = [self.get_dxn(self.px,self.py,k) for k in range(nk)]
+            it += 1
+            nk = self.Nnbr[px,py]
+            dxn = [self.get_dxn(px,py,k) for k in range(nk)]
             for k in range(nk):
-                pxn,pyn,dist = self.nbrs(dxn[k],self.px,self.py) #pxn, pyn, dist
-                weight[k] = (max(0,self.qx[self.px,self.py]*self.dxn_ivec[dxn[k]-1]+self.qy[self.px,self.py]*self.dxn_jvec[dxn[k]-1])**1.0*self.h[pxn,pyn]**theta_sed)/dist #qw instead of downstream direction for weights for sediment parcels
+                pxn,pyn,dist = self.nbrs(dxn[k],px,py) #pxn, pyn, dist
+                weight[k] = (max(0,self.qx[px,py]*self.dxn_ivec[dxn[k]-1]+self.qy[px,py]*self.dxn_jvec[dxn[k]-1])**1.0*self.h[pxn,pyn]**theta_sed)/dist #qw instead of downstream direction for weights for sediment parcels
                 if weight[k] < 0:
                     pdb.set_trace()
                 if self.wet_flag[pxn,pyn] != 1:
@@ -517,28 +516,28 @@ class model_steps(object):
                     weight[k] = 0 #doesn't allow wall nodes
             if np.add.reduce(weight) == 0:
                 for k in range(nk):
-                    pxn,pyn,dist = self.nbrs(dxn[k],self.px,self.py) #pxn, pyn, dist
+                    pxn,pyn,dist = self.nbrs(dxn[k],px,py) #pxn, pyn, dist
                     weight[k] = 1/dist
                     if self.wall_flag[pxn,pyn] == 1:
                         weight[k] = 0
-            istep,jstep = self.choose_prob(weight,nk,sed,self.px,self.py) #choose a cell to move into #istep,jstep
+            istep,jstep = self.choose_prob(weight,nk,sed,px,py) #choose a cell to move into #istep,jstep
             dist = m.sqrt(istep**2+jstep**2)
             #deposition and erosion
             if sed == 1: #sand
                 if dist > 0:
-                    self.qs[self.px,self.py] = self.qs[self.px,self.py]+self.Vp_res/2/self.dt/self.dx #exit accumulation
-                self.px = self.px+istep
-                self.py = self.py+jstep
+                    self.qs[px,py] = self.qs[px,py]+self.Vp_res/2/self.dt/self.dx #exit accumulation
+                px = px+istep
+                py = py+jstep
                 if dist > 0:
-                    self.qs[self.px,self.py] = self.qs[self.px,self.py]+self.Vp_res/2/self.dt/self.dx #entry accumulation
-                self.sand_dep_ero(self.px,self.py)
-                if self.boundflag[self.px,self.py] == 1:
+                    self.qs[px,py] = self.qs[px,py]+self.Vp_res/2/self.dt/self.dx #entry accumulation
+                self.sand_dep_ero(px,py)
+                if self.boundflag[px,py] == 1:
                     sed_continue = 0 
             if sed == 2: #mud
-                self.px = self.px+istep
-                self.py = self.py+jstep
-                self.mud_dep_ero(self.px,self.py)
-                if self.boundflag[self.px,self.py] == 1:
+                px = px+istep
+                py = py+jstep
+                self.mud_dep_ero(px,py)
+                if self.boundflag[px,py] == 1:
                     sed_continue = 0 
 
     def sand_route(self): #route sand parcels; topo diffusion
@@ -546,10 +545,10 @@ class model_steps(object):
         for np_sed in xrange(1,int(Np_sed*f_bedload)+1):
             self.Vp_res = self.Vp_sed
             self.itmax = 2*(L+W)
-            self.px = self.px_start
-            self.py = self.choose_py_start()
-            self.qs[self.px,self.py] = self.qs[self.px,self.py]+self.Vp_res/2/self.dt/self.dx
-            self.sed_parcel(theta_sed,1)
+            px = self.px_start
+            py = self.choose_py_start()
+            self.qs[px,py] = self.qs[px,py]+self.Vp_res/2/self.dt/self.dx
+            self.sed_parcel(theta_sed,1.px,py)
         print('np_sand = %d' %np_sed)
         #topo diffusion; introduces lateral erosion as sed can be moved from banks into channels ##should be a function, for cleanliness
         for crossdiff in range(self.N_crossdiff):
@@ -570,10 +569,9 @@ class model_steps(object):
         theta_sed = self.theta_mud
         for np_sed in xrange(1,int(Np_sed*(1-f_bedload))+1):
             self.Vp_res = self.Vp_sed
-            self.itmax = 2*(L+W)
-            self.px = self.px_start
-            self.py = self.choose_py_start()
-            self.sed_parcel(theta_sed,2)
+            px = self.px_start
+            py = self.choose_py_start()
+            self.sed_parcel(theta_sed,2,px,py)
         print('np_mud = %d' %np_sed)
     
     def sed_route(self): #route all sediment
