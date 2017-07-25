@@ -89,13 +89,13 @@ class model_steps(object):
         self.qs0 = self.qw0*C0 #sediment unit input discharge
         self.Qp_water = Qw0/Np_water #volume of each water parcel
         self.Vp_sed = dVs/Np_sed #volume of each sediment parcel
-        self.GRAVITY = 9.81
+        GRAVITY = 9.81
         self.u_max = 2.0*self.u0
         hB = 1.0*self.h0 #(m) basin depth
         self.H_SL = 0 # sea level elevation (downstream boundary condition)
         self.SLR = 0/1000*self.h0/self.dt #SLR per timestep
         self.dry_depth = min(0.1,0.1*self.h0) #(m) critical depth to switch to 'dry' node
-        self.gamma = self.GRAVITY*self.S0*self.dx/self.u0/self.u0 #determines ratio of influence of inertia versus water surface gradient in calculating routing direction; controls how much water spreads laterally
+        self.gamma = GRAVITY*self.S0*self.dx/self.u0/self.u0 #determines ratio of influence of inertia versus water surface gradient in calculating routing direction; controls how much water spreads laterally
         #parameters for random walk probability calc
         self.theta_water = 1.0 #depth dependence (power of h) in routing water parcels
         self.theta_sand = 2.0*self.theta_water # depth dependence (power of h) in routing sand parcels; sand in lower part of water column, more likely to follow topographic lows
