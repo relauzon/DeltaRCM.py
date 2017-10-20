@@ -588,15 +588,13 @@ class model_steps(object):
         for px in xrange(L):
             for py in range(W):
                 zn = round((self.eta[px,py]-self.z0)/self.dz) 
-                zn = max(1,zn)
+                zn = int(max(1,zn))
                 if zn > self.zmax:
                     pdb.set_trace()
                 if zn >= self.topz[px,py]:
-                    for z in range(int(self.topz[px,py]),int(zn)+1): #+1 makes inclusive
-                        self.strata[px,py,z-1] = self.sand_frac[px,py] 
+                    self.strata[px,py,int(self.topz[px,py]):zn] = self.sand_frac[px,py] 
                 else:
-                    for z in range(int(zn),int(self.topz[px,py])+1): #+1 makes inclusive
-                        self.strata[px,py,z-1] = -1 
+                    self.strata[px,py,zn:int(self.topz[px,py])] = -1
                     self.sand_frac[px,py] = self.strata[px,py,max(0,z-2)]#max(1,z-1)
                 self.topz[px,py] = zn
         if timestep > 1000: #subsidence
